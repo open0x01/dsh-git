@@ -13,3 +13,6 @@ Thumbs.db
 .env.*
 !.env.example
 *.tgz
+
+# 设计文档只保留在本地，不随仓库发布
+docs/

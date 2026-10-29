@@ -4,7 +4,7 @@
 
 ## [0.1.0] - 未发布
 
-首个可用版本的目标：本地 Git 只读工作台 + 写操作 + 审批策略（对应 docs/04 的 M0–M2）。
+首个可用版本的范围：本地 Git 工作台（11 个工具）+ GitHub（8 个工具）+ 审批策略 + 只读面板。
 
 ### 新增
 
@@ -25,4 +25,4 @@
 - 超限输出落盘（`DiffResult.spillPath` 暂为 `undefined`，只返回 `truncated`）。
 - `gh_pr_create` 默认被策略拒绝（`network-write: deny`），需要在配置里改成 `ask` 才会真正请求审批。
 - 面板只读：写操作需要 agent 级审批入口（ADR-020）。
-- 发布动作本身（`pnpm publish` + 干净 profile 回归）见 [docs/09-发布清单.md](docs/09-发布清单.md)，尚未执行。
+- 发布动作本身（`pnpm publish` + 干净 profile 回归）尚未执行。
