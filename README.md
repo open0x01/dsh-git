@@ -91,6 +91,20 @@ dsh plugin --profile <name> add dsh-git
 dsh --profile <name> --dump-config | Select-String dsh-git
 ```
 
+## 本地调试（装进独立 profile，含面板）
+
+```powershell
+pwsh -File scripts/install-local.ps1      # 构建 + 准备安装树 + 写进 profile gitdev
+dsh --profile gitdev                      # 启动 Web UI（会打印端口）
+```
+
+为什么不能直接 `dsh plugin add <仓库目录>`：包间依赖是 `workspace:^`（profile 不是 pnpm workspace），且 pnpm 会把本地目录装成 `link:`，链接目标解析不到宿主的 `@deepseek-ai/*`。
+脚本用「平铺 node_modules + 目录联接」绕开：`@deepseek-ai` 直接指向 dsh 自带的那一份，保证全进程只有一份 cordis。
+
+改代码后：`pnpm build` 再重跑脚本（profile 不用重建）；客户端 `lib/client.js` 有 500ms 轮询，改完浏览器会自动重载该模块。
+
+卸载：`dsh plugin --profile gitdev remove dsh-git`，或直接删掉 `\/profiles/gitdev` 与安装树目录。
+
 ## 环境基线
 
 | 组件 | 本机验证版本 | 说明 |
