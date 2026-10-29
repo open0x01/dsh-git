@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 /**
  * 用 `vm` 模拟 DSH 的 `window.__ModuleLoader__`：
  * 不启动浏览器，也能验证「id 与包名一致、require 只取宿主表里的模块、
- * apply 注册了右侧栏 tab 的三个部件」。
+ * apply 把 chip 与 Git 视图注册到正确的槽位」。
  *
  * 这三件事都是**运行时**才报错的（没有编译期检查），所以必须有一条这样的测试。
  */
@@ -59,6 +59,12 @@ function loadBundle(): LoadedBundle {
         },
       },
     },
+    // 客户端插件会插一条 <style>；沙箱里给个最小 document 即可
+    document: {
+      querySelector: () => null,
+      createElement: () => ({ dataset: {}, textContent: '' }),
+      head: { appendChild: () => {} },
+    },
   }
 
   createContext(sandbox)
@@ -79,28 +85,20 @@ describe('客户端 bundle（lib/client.js）', () => {
     }
   })
 
-  it('导出 cordis 插件三件套，inject 声明 slots 与 sidebarRightTabs', () => {
+  it('导出 cordis 插件三件套，只依赖 slots', () => {
     const { exports } = loadBundle()
     expect(typeof exports.apply).toBe('function')
-    expect(exports.inject).toEqual(['slots', 'sidebarRightTabs'])
+    expect(exports.inject).toEqual(['slots'])
     expect(exports.name).toBe('dsh-git-client')
-    expect(exports.PANEL_ID).toBe('dsh-git')
+    expect(exports.PANEL_ID).toBe('git')
   })
 
-  it('apply 注册：输入区分支 chip ×2 + 右侧栏 tab 类型/内容/标题', () => {
+  it('apply 注册两个槽位：新对话的 chip + 对话中的 Git 视图', () => {
     const { exports } = loadBundle()
-    const tabTypes: Array<Record<string, unknown>> = []
     const slots: Array<{ options: Record<string, unknown>; component: unknown }> = []
     const injected: string[] = []
 
     const ctx = {
-      sidebarRightTabs: {
-        register(definition: Record<string, unknown>) {
-          tabTypes.push(definition)
-          return () => {}
-        },
-      },
-      sidebarRight: { commandTarget: () => undefined, openTabFromTarget: () => {} },
       slots: {
         inject(name: string, callback: () => () => void) {
           injected.push(name)
@@ -115,37 +113,26 @@ describe('客户端 bundle（lib/client.js）', () => {
 
     ;(exports.apply as (context: unknown) => void)(ctx)
 
-    // 1. chip：新对话在那一排最前（靠 CSS order 提到首位），对话中在顶部动作区
-    expect(injected.slice(0, 2)).toEqual(['conversation.hero.options', 'conversation.session.header.actions'])
-    expect(slots[0]?.options).toMatchObject({ name: 'conversation.hero.options', id: 'dsh-git-branch' })
-    expect(slots[1]?.options).toMatchObject({ name: 'conversation.session.header.actions', id: 'dsh-git-branch' })
+    expect(injected).toEqual(['conversation.hero.options', 'conversation.view'])
+
+    // 1. 新对话那一排的 chip（位置靠注入的 CSS order 调整）
+    expect(slots[0]?.options).toMatchObject({
+      name: 'conversation.hero.options',
+      id: 'dsh-git-branch',
+    })
     expect(typeof slots[0]?.options.inject).toBe('function')
     expect(typeof slots[0]?.component).toBe('function')
+
+    // 2. 视图切换器里的第三个视图：order 必须大于轨迹的 10
+    expect(slots[1]?.options).toMatchObject({ name: 'conversation.view', id: 'git', order: 20 })
+    expect((slots[1]?.options.label as () => string)()).toBe('Git')
     expect(typeof slots[1]?.component).toBe('function')
-
-    // 2. 右侧栏 tab 类型：kind / 标题 / 引导入口
-    expect(tabTypes).toHaveLength(1)
-    const definition = tabTypes[0]
-    expect(definition).toMatchObject({ id: 'dsh-git', kind: 'git', priority: 'extension' })
-    expect((definition?.title as () => string)()).toBe('Git')
-    const guide = definition?.guide as Array<Record<string, unknown>>
-    expect(guide).toHaveLength(1)
-    expect((guide[0]?.title as () => string)()).toBe('Git')
-    expect(typeof guide[0]?.icon).toBe('function')
-
-    // 3. 右侧栏的内容与标题两个 keyed 槽位
-    expect(injected.slice(2)).toEqual(['sidebar.right.pane.tab', 'sidebar.right.pane.tab.title'])
-    expect(slots[2]?.options).toMatchObject({ name: 'sidebar.right.pane.tab', key: 'dsh-git' })
-    expect(slots[3]?.options).toMatchObject({ name: 'sidebar.right.pane.tab.title', key: 'dsh-git' })
-    expect(typeof slots[2]?.component).toBe('function')
-    expect(typeof slots[3]?.component).toBe('function')
   })
 
-  it('不再注册左侧全局页（sidebar.panellist / main）', () => {
+  it('不再注册左侧全局页或右侧栏 tab（位置已由 chip + 视图承担）', () => {
     const { exports } = loadBundle()
     const injected: string[] = []
     const ctx = {
-      sidebarRightTabs: { register: () => () => {} },
       slots: {
         inject(name: string, callback: () => () => void) {
           injected.push(name)
@@ -155,7 +142,13 @@ describe('客户端 bundle（lib/client.js）', () => {
       },
     }
     ;(exports.apply as (context: unknown) => void)(ctx)
-    expect(injected).not.toContain('sidebar.panellist')
-    expect(injected).not.toContain('main')
+    for (const forbidden of [
+      'sidebar.panellist',
+      'main',
+      'sidebar.right.pane.tab',
+      'conversation.input.left',
+    ]) {
+      expect(injected).not.toContain(forbidden)
+    }
   })
 })
