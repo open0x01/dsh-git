@@ -29,3 +29,14 @@
       name: ../packages/tool-git/lib/index.js
       config:
         toolPrefix: ''
+        enableWriteTools: true
+
+    - id: dsh-git-github
+      name: ../packages/github/lib/index.js
+      config:
+        tokenRef: GITHUB_TOKEN
+
+    - id: dsh-git-tool-github
+      name: ../packages/tool-github/lib/index.js
+      config:
+        toolPrefix: ''

@@ -10,15 +10,17 @@
 
 - **monorepo 脚手架**：pnpm workspace + tsdown 统一构建（`lib/index.js` + `lib/index.d.ts`）、vitest、GitHub Actions（Linux/Windows × Node 22）。
 - **`dsh-git-core`**：`GitService` / `GitHubService` 抽象、全部领域类型、`GitError` 错误模型，以及 `ctx.gitRisk` 风险注册表。
-- **`dsh-git-local`**：本地 git Provider。`spawn(git, argv, { shell: false })`、超时/取消/输出上限、`GIT_TERMINAL_PROMPT=0` 干净环境、`realpath` + 仓库内路径约束；status(porcelain v2)、diff(四目标)、log、show、blame，以及 stage/unstage/commit/branch/stash/worktree。
-- **`dsh-git-tool-git`**：5 个只读工具 `git_status` / `git_diff` / `git_log` / `git_show` / `git_blame`，注册即登记风险，`toolPrefix` 可避让重名。
+- **`dsh-git-local`**：本地 git Provider。`spawn(git, argv, { shell: false })`、超时/取消/输出上限、`GIT_TERMINAL_PROMPT=0` 干净环境、`realpath` + 仓库内路径约束；status(porcelain v2)、diff(四目标)、log、show、blame、remotes，以及 stage/unstage/commit/branch/stash/worktree。
+- **`dsh-git-github`**：GitHub Provider。纯 `fetch` + 零第三方依赖；超时、重试、ETag/TTL 缓存、限流解析、`redirect: 'error'`、消息脱敏；authStatus / resolveSlug / repoView / listPulls / getPull / pullDiff / createPull（默认 draft）/ listIssues / getIssue。
+- **`dsh-git-tool-git`**：11 个工具（5 只读 + 6 写），注册即登记风险，`toolPrefix` 可避让重名，`enableWriteTools` 可一键收成只读。
+- **`dsh-git-tool-github`**：8 个 `gh_*` 工具（7 只读 + 1 联网写），`gh_pr_create` 默认 draft。
 - **`dsh-git-policy`**：`tools/pre-execute` 闸门，只作用于 `ctx.gitRisk` 里登记过的工具；`read/write/network-write` 三档默认 `allow/ask/deny`。
-- **`dsh-git`（bundle）**：`cordis.patch.yml` 组合 4 行可用插件，另 3 行（github / tool-github / client）以 `disabled: true` 占位。
-- **验证**：43 个单元/集成测试（含真实临时仓库上的 status/diff/log/show/blame/commit/stash/worktree），以及不启动 GUI 的 `pnpm smoke` 冒烟脚本。
+- **`dsh-git`（bundle）**：`cordis.patch.yml` 组合 6 行可用插件，`dsh-git-client` 以 `disabled: true` 占位。
+- **验证**：83 个单元/集成测试（含真实临时仓库、假 fetch 的 GitHub 客户端与服务、schema 校验），以及不启动 GUI 的 `pnpm smoke` 冒烟脚本（19 个工具）。
 
 ### 尚未实现
 
-- `dsh-git-github` / `dsh-git-tool-github`（M3）：GitHub REST Provider 与 8 个 `gh_*` 工具。
 - `dsh-git-client`（M4）：Web 右侧边栏面板与 host 侧 RPC。
-- 网络类 git 工具 `git_fetch` / `git_pull` / `git_push`：Provider 未提供对应方法，`enableNetwork` 保持 `false`。
+- 网络类 git 工具 `git_fetch` / `git_pull` / `git_push`：`GitService` 未提供对应方法，`enableNetwork` 保持 `false`。
 - 超限输出落盘（`DiffResult.spillPath` 暂为 `undefined`，只返回 `truncated`）。
+- `gh_pr_create` 默认被策略拒绝（`network-write: deny`），需要在配置里改成 `ask` 才会真正请求审批。

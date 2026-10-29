@@ -163,6 +163,15 @@ export interface ShowResult {
   diff: DiffResult
 }
 
+/** 一个远端。 */
+export interface RemoteInfo {
+  name: string
+  /** fetch URL */
+  url: string
+  /** push URL；与 fetch URL 相同时为 null */
+  pushUrl: string | null
+}
+
 /** `log` 的可选参数。 */
 export interface LogOptions extends Abortable {
   limit?: number

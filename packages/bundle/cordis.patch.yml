@@ -29,23 +29,30 @@
           write: ask
           network-write: deny
 
-    # 模型工具（v0.1：5 个只读工具）
+    # 模型工具：本地 git（5 只读 + 6 写）
     - id: dsh-git-tool-git
       name: dsh-git-tool-git
       config:
         toolPrefix: ''
+        enableWriteTools: true
 
-    # ── 以下三行尚未实现（M3 / M4），先以 disabled 占位 ──
-    # 实现完成后删掉 disabled 即可启用，不需要用户改任何配置。
+    # GitHub Provider：纯 fetch 调 REST，凭据只存引用
     - id: dsh-git-github
       name: dsh-git-github
-      disabled: true
       config:
         tokenRef: GITHUB_TOKEN
         baseUrl: https://api.github.com
+        maxFiles: 100
+        maxDiffBytes: 200000
+
+    # GitHub 工具（8 个 gh_*；gh_pr_create 是 network-write，默认被策略拒绝）
     - id: dsh-git-tool-github
       name: dsh-git-tool-github
-      disabled: true
+      config:
+        toolPrefix: ''
+
+    # ── 以下一行尚未实现（M4），先以 disabled 占位 ──
+    # 实现完成后删掉 disabled 即可启用，不需要用户改任何配置。
     - id: dsh-git-client
       name: dsh-git-client
       disabled: true

@@ -2,8 +2,8 @@
 
 给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Git / GitHub 插件套件：把 GitHub 上分散的 DSH Git 相关插件能力，收敛成一套统一契约、零外部二进制依赖、默认安全的实现。
 
-> **当前状态：M0–M2 已落地（可构建、可测试、可加载），M3/M4 未实现。**
-> 本地 Git 服务、5 个只读工具、写操作、审批策略与 bundle 都已就位；GitHub 与 Web 面板在 `cordis.patch.yml` 里以 `disabled: true` 占位。进度见 [docs/00-执行总览.md](docs/00-执行总览.md)，验证方式见 [docs/05-开发与运行手册.md](docs/05-开发与运行手册.md)。
+> **当前状态：M0–M3 已落地（可构建、可测试、可加载），M4 面板未实现。**
+> 本地 Git 服务、11 个本地工具、8 个 GitHub 工具、审批策略与 bundle 都已就位；Web 面板在 `cordis.patch.yml` 里以 `disabled: true` 占位。进度见 [docs/00-执行总览.md](docs/00-执行总览.md)，验证方式见 [docs/05-开发与运行手册.md](docs/05-开发与运行手册.md)。
 
 ## 它解决什么问题
 
@@ -18,17 +18,19 @@
 
 ## 规划的能力（v0.1）
 
-**本地 Git（14 个工具）** —— 已实现 5 个只读 + 6 个写工具的服务层，工具注册目前只开只读 5 个：
+**本地 Git（11 个工具，已全部注册）**
 
-| 只读（已注册） | 写（服务层已实现，工具注册在 M2 收尾） |
+| 只读 | 写（走审批） |
 |---|---|
 | `git_status`、`git_diff`、`git_log`、`git_show`、`git_blame` | `git_stage`、`git_unstage`、`git_commit`、`git_branch`、`git_stash`、`git_worktree` |
 
 `git_fetch` / `git_pull` / `git_push` 默认**不注册**（`enableNetwork: false`，且 Provider 尚未提供网络方法）。
 
-**GitHub（8 个工具）** —— 未实现（M3）
+**GitHub（8 个工具，已全部注册）**
 
-`gh_auth_status`、`gh_repo_view`、`gh_pr_list`、`gh_pr_view`、`gh_pr_diff`、`gh_pr_create`（默认 draft）、`gh_issue_list`、`gh_issue_view`。
+| 只读 | 联网写（默认 deny） |
+|---|---|
+| `gh_auth_status`、`gh_repo_view`、`gh_pr_list`、`gh_pr_view`、`gh_pr_diff`、`gh_issue_list`、`gh_issue_view` | `gh_pr_create`（默认 draft） |
 
 **Web 面板** —— 未实现（M4）：右侧边栏 Git tab（状态 / 提交 / 历史 / diff）。
 
@@ -55,9 +57,9 @@ dsh-git/
 ├─ packages/                  # 8 个包
 │  ├─ core/        dsh-git-core         服务定义 + ctx.gitRisk ✅
 │  ├─ local/       dsh-git-local        本地 git Provider（spawn argv）✅
-│  ├─ github/      dsh-git-github       GitHub Provider（REST + fetch）⏳ M3
-│  ├─ tool-git/    dsh-git-tool-git     本地 git 工具（只读 5 个已注册）✅
-│  ├─ tool-github/ dsh-git-tool-github  8 个 GitHub 工具 ⏳ M3
+│  ├─ github/      dsh-git-github       GitHub Provider（REST + fetch）✅
+│  ├─ tool-git/    dsh-git-tool-git     本地 git 工具（11 个）✅
+│  ├─ tool-github/ dsh-git-tool-github  GitHub 工具（8 个 gh_*）✅
 │  ├─ policy/      dsh-git-policy       风险表 + tools/pre-execute 策略 ✅
 │  ├─ client/      dsh-git-client       Web 侧边栏面板 ⏳ M4
 │  └─ bundle/      dsh-git              bundle：cordis.patch.yml ✅
@@ -72,8 +74,8 @@ dsh-git/
 pnpm install
 pnpm typecheck      # 8 个包的类型检查
 pnpm build          # tsdown → 每包 lib/index.js + lib/index.d.ts
-pnpm test           # 43 个测试（含真实临时仓库上的集成测试）
-pnpm smoke          # 挂到真实 cordis Context，断言 ctx.git / 工具注册
+pnpm test           # 83 个测试（含真实临时仓库集成测试 + 假 fetch 的 GitHub 客户端测试）
+pnpm smoke          # 挂到真实 cordis Context，断言 ctx.git / ctx.github / 19 个工具
 pnpm verify         # 以上四步串起来
 ```
 

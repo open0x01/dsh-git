@@ -40,7 +40,8 @@ export interface PullRequestSummary {
   base: string
   url: string
   updatedAt: string
-  checks: CheckSummary
+  /** CI 检查汇总；列表接口为了省请求不查，此时为 undefined */
+  checks?: CheckSummary
 }
 
 /** PR 详情。 */

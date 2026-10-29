@@ -20,6 +20,7 @@ import {
   type DiffResult,
   type DiffTarget,
   type LogOptions,
+  type RemoteInfo,
   type RepoRef,
   type ShowResult,
   type StashAction,
@@ -34,6 +35,7 @@ import { blameRepo, type BlameContext } from './blame.js'
 import { diffRepo, type DiffContext } from './diff.js'
 import { logRepo, type LogContext } from './log.js'
 import { resolveRepo, type ResolveContext } from './repo.js'
+import { remotesRepo, type RemotesContext } from './remotes.js'
 import { runGit, type RunOptions } from './runner.js'
 import { showRepo } from './show.js'
 import { parseStatusV2 } from './status.js'
@@ -119,6 +121,11 @@ export class LocalGitService extends GitService {
   ): Promise<BlameLine[]> {
     const context: BlameContext = { gitPath: this.config.gitPath, run: this.slice(options.signal) }
     return blameRepo(context, repo, path, range)
+  }
+
+  override remotes(repo: RepoRef, options: Abortable = {}): Promise<RemoteInfo[]> {
+    const context: RemotesContext = { gitPath: this.config.gitPath, run: this.slice(options.signal) }
+    return remotesRepo(context, repo)
   }
 
   override stage(repo: RepoRef, paths: string[], options: Abortable = {}): Promise<void> {

@@ -26,6 +26,7 @@ import type {
   StatusResult,
   WorktreeAction,
   WorktreeInfo,
+  RemoteInfo,
 } from './types.js'
 
 declare module '@deepseek-ai/cordis' {
@@ -91,6 +92,9 @@ export abstract class GitService extends Service {
     range?: { start: number; end: number },
     options?: Abortable,
   ): Promise<BlameLine[]>
+
+  /** 远端列表；`ctx.github.resolveSlug` 用它从 remote 推导 owner/repo。 */
+  abstract remotes(repo: RepoRef, options?: Abortable): Promise<RemoteInfo[]>
 
   /** 暂存路径（含删除与重命名）。 */
   abstract stage(repo: RepoRef, paths: string[], options?: Abortable): Promise<void>

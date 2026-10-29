@@ -16,6 +16,7 @@ export { parseNameStatus, parseNumStat } from './diff.js'
 export { parseLogLine, LOG_DEFAULT_LIMIT, LOG_MAX_LIMIT } from './log.js'
 export { parseBlamePorcelain } from './blame.js'
 export { parseWorktreeList } from './write.js'
+export { parseRemotes } from './remotes.js'
 export { isInside, resolveInsideRepo, toRepoRelative, normalizePaths } from './paths.js'
 export { resolveRepo, type ResolveContext } from './repo.js'
 
