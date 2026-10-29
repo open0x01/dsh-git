@@ -7,6 +7,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { LocalGitService, Config as LocalConfig } from '../../local/src/index.ts'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createRouteHandler } from '../src/host/routes.js'
+import { sessionDirectoryOf } from '../src/host/ops.js'
 
 function git(cwd: string, ...args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' })
@@ -108,5 +109,38 @@ describe('面板 RPC（真实 HTTP + 真实 git）', () => {
     expect(result.status).toBe(400)
     expect((result.body.error as { code: string }).code).toBe('not-a-repo')
     await rm(outside, { recursive: true, force: true })
+  })
+
+  it('既没有 sessionId 也没有 repoDir 时返回 400，而不是去猜进程工作目录', async () => {
+    const result = await rpc('snapshot', {})
+    expect(result.status).toBe(400)
+    expect((result.body.error as { code: string }).code).toBe('no-workspace')
+  })
+
+  it('sessionId 无法解析时返回 409', async () => {
+    const result = await rpc('snapshot', { sessionId: 'no-such-session' })
+    expect(result.status).toBe(409)
+    expect((result.body.error as { code: string }).code).toBe('session-unavailable')
+  })
+})
+
+describe('sessionDirectoryOf', () => {
+  it('从 sessions + workingDirectory 两个服务拼出会话目录', () => {
+    const session = { id: 's1' }
+    const ctx = {
+      get(name: string) {
+        if (name === 'sessions') return { get: (id: string) => (id === 's1' ? session : undefined) }
+        if (name === 'workingDirectory') return { get: (value: unknown) => (value === session ? 'C:/work/repo' : '') }
+        return undefined
+      },
+    } as unknown as Parameters<typeof sessionDirectoryOf>[0]
+
+    expect(sessionDirectoryOf(ctx, 's1')).toBe('C:/work/repo')
+    expect(sessionDirectoryOf(ctx, 'nope')).toBeUndefined()
+  })
+
+  it('缺服务时返回 undefined（不抛错）', () => {
+    const ctx = { get: () => undefined } as unknown as Parameters<typeof sessionDirectoryOf>[0]
+    expect(sessionDirectoryOf(ctx, 's1')).toBeUndefined()
   })
 })

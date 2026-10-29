@@ -1,12 +1,14 @@
 /**
  * 面板 RPC 的「操作」层：与 HTTP 无关，便于单测与复用。
  *
- * 设计取舍（docs/04 T4.1 / T4.7）：
+ * 设计取舍：
  * - 只暴露**白名单**里的 op，未知 op 一律 400，不做「透传任意 git 命令」；
  * - 读操作直接复用 `ctx.git` / `ctx.github`，与模型工具同一套校验；
  * - **写操作在 v0.1 返回 501**：审批需要 agent 与进行中的 turn，而 HTTP 路由没有
  *   agent 上下文，绕过审批就成了「没有闸门的后门」。写操作请走模型工具（`git_commit` 等），
- *   它们会经过 `dsh-git-policy`。等宿主提供「按 session 绑定的审批入口」再开放。
+ *   它们会经过 `dsh-git-policy`；
+ * - 仓库目录**必须来自调用方**（`sessionId` 或 `repoDir`），不再回落到进程工作目录——
+ *   那会把「面板看的是哪个仓库」变成一个隐式的、几乎总是错的猜测。
  *
  * @module dsh-git-client/host/ops
  */
@@ -25,7 +27,9 @@ export type OpName = (typeof READ_OPS)[number] | (typeof WRITE_OPS)[number]
 
 /** 一次 RPC 的输入。 */
 export interface OpRequest {
-  /** 仓库目录；省略时用进程工作目录 */
+  /** 会话 id：面板按它找到会话的工作目录 */
+  sessionId?: string
+  /** 显式仓库目录（覆盖 sessionId 推导） */
   repoDir?: string
   /** `pr` op 用：owner */
   owner?: string
@@ -62,9 +66,56 @@ export function isOpName(value: string): value is OpName {
   return (READ_OPS as readonly string[]).includes(value) || (WRITE_OPS as readonly string[]).includes(value)
 }
 
-/** 把 op 请求里的仓库目录解析成仓库引用。 */
+/**
+ * 解析会话的工作目录。
+ *
+ * @param ctx - 插件上下文
+ * @param sessionId - 会话 id
+ * @returns 绝对目录；无法解析时返回 undefined
+ */
+export function sessionDirectoryOf(ctx: Context, sessionId: string): string | undefined {
+  const sessions = ctx.get('sessions')
+  const workingDirectory = ctx.get('workingDirectory')
+  if (sessions === undefined || workingDirectory === undefined) return undefined
+  const session = sessions.get(sessionId as never)
+  if (session === undefined) return undefined
+  try {
+    return workingDirectory.get(session)
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * 解析本次请求要操作的仓库。
+ *
+ * 顺序：显式 `repoDir` → 会话工作目录（`sessionId`）。**不再**回落到进程工作目录。
+ *
+ * @param ctx - 插件上下文
+ * @param request - RPC 输入
+ * @returns 仓库引用
+ * @throws RpcError 没有可用的仓库目录时
+ */
 async function repoFor(ctx: Context, request: OpRequest): Promise<RepoRef> {
-  return ctx.git.resolveRepo(request.repoDir ?? process.cwd())
+  if (request.repoDir !== undefined && request.repoDir.trim() !== '') {
+    return ctx.git.resolveRepo(request.repoDir)
+  }
+  if (request.sessionId !== undefined && request.sessionId !== '') {
+    const cwd = sessionDirectoryOf(ctx, request.sessionId)
+    if (cwd !== undefined) return ctx.git.resolveRepo(cwd)
+    throw new RpcError(
+      409,
+      'session-unavailable',
+      `无法解析会话 ${request.sessionId} 的工作目录`,
+      '会话可能尚未恢复；刷新页面或显式传 repoDir',
+    )
+  }
+  throw new RpcError(
+    400,
+    'no-workspace',
+    '面板不知道要操作哪个仓库',
+    '请传 sessionId（面板会带上）或 repoDir（绝对路径）',
+  )
 }
 
 /**
@@ -75,7 +126,7 @@ async function repoFor(ctx: Context, request: OpRequest): Promise<RepoRef> {
  * @param request - 参数
  * @param maxCommits - `snapshot` 里返回的历史条数上限
  * @returns 可直接 JSON 序列化的数据
- * @throws RpcError 404/501 等；GitError 由调用方映射
+ * @throws RpcError 400/404/501/503 等；GitError 由调用方映射
  */
 export async function runOp(
   ctx: Context,
@@ -149,7 +200,10 @@ export async function runOp(
  * @param error - 捕获值
  * @returns 状态码与错误体
  */
-export function toErrorResponse(error: unknown): { status: number; body: { ok: false; error: { code: string; message: string; hint?: string } } } {
+export function toErrorResponse(error: unknown): {
+  status: number
+  body: { ok: false; error: { code: string; message: string; hint?: string } }
+} {
   if (error instanceof RpcError) {
     return {
       status: error.status,
@@ -179,6 +233,9 @@ export function toErrorResponse(error: unknown): { status: number; body: { ok: f
   }
   return {
     status: 500,
-    body: { ok: false, error: { code: 'internal', message: error instanceof Error ? error.message : String(error) } },
+    body: {
+      ok: false,
+      error: { code: 'internal', message: error instanceof Error ? error.message : String(error) },
+    },
   }
 }

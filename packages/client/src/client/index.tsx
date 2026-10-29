@@ -17,7 +17,7 @@
 
 import * as React from 'react'
 
-/** 面板 id（同时是 `sidebar.panellist` 的 id 与 `main` 的 key）。 */
+/** 面板 id：既是 tab 类型的 id，也是 `sidebar.right.pane.tab` 与 `.title` 两个槽位的 key。 */
 export const PANEL_ID = 'dsh-git'
 
 /** RPC 前缀，与 host 侧 `dsh-git-client.rpcPath` 默认值一致。 */
@@ -123,7 +123,7 @@ const style = {
   error: { color: '#d9534f', wordBreak: 'break-word' } as React.CSSProperties,
 }
 
-/** 侧边栏图标（`sidebar.panellist` 需要）。 */
+/** tab 类型在「+」菜单里的图标。 */
 function GitIcon(): React.ReactElement {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -165,18 +165,23 @@ function ChangeGroup({ title, changes }: { title: string; changes: Change[] }): 
 /**
  * 面板主体。
  *
- * 只依赖 props 里的 `sessionId` 之外的东西：仓库目录取会话工作目录（host 侧默认），
- * 因此组件不需要任何注入。
+ * 右侧栏是**按会话**的：`sessionId` 由槽位运行时注入，host 侧据此解析出该会话的
+ * 工作目录，所以面板永远看的是「当前这个工作区」，不会去猜进程工作目录。
  */
-export function GitPanel(): React.ReactElement {
+export function GitPanel(props: {
+  sessionId?: string
+  /** 有些版本把会话放在 `session` 对象里，这里两种都认 */
+  session?: { id?: string }
+}): React.ReactElement {
   const [snapshot, setSnapshot] = React.useState<Snapshot | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const sessionId = props.sessionId ?? props.session?.id
 
   const refresh = React.useCallback(async () => {
     setLoading(true)
     try {
-      const data = await callRpc<Snapshot>('snapshot')
+      const data = await callRpc<Snapshot>('snapshot', sessionId === undefined ? {} : { sessionId })
       setSnapshot(data)
       setError(null)
     } catch (caught) {
@@ -184,7 +189,7 @@ export function GitPanel(): React.ReactElement {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [sessionId])
 
   React.useEffect(() => {
     void refresh()
@@ -246,45 +251,71 @@ export function GitPanel(): React.ReactElement {
   )
 }
 
+/** 右侧栏 tab 的 chip 标题。 */
+export function GitTitle(): React.ReactElement {
+  return <span>Git</span>
+}
+
 /** 客户端上下文里我们用到的部分。 */
 interface ClientContext {
   slots: {
     inject(name: string, callback: () => () => void): void
     register(options: Record<string, unknown>, component: unknown): () => void
   }
+  sidebarRightTabs: {
+    register(definition: Record<string, unknown>): () => void
+  }
 }
 
 /** 客户端插件名。 */
 export const name = 'dsh-git-client'
 
-/** 只依赖槽位服务。 */
-export const inject = ['slots']
+/** 依赖：槽位服务与右侧栏 tab 注册表。 */
+export const inject = ['slots', 'sidebarRightTabs']
 
 /**
- * 注册侧边栏入口与面板主体。
+ * 注册右侧栏的 Git tab（会话级，而不是左侧的全局页）。
+ *
+ * 两段式注册（与官方 tab 类型一致）：
+ * 1. `sidebarRightTabs.register` 声明「这是什么类型」——kind、标题、`+` 菜单里的入口；
+ * 2. `sidebar.right.pane.tab` / `…title` 用同一个 id 注册「内容与标题怎么画」。
  *
  * @param ctx - 客户端上下文
  */
 export function apply(ctx: ClientContext): void {
-  ctx.slots.inject('sidebar.panellist', () =>
-    ctx.slots.register(
+  ctx.sidebarRightTabs.register({
+    id: PANEL_ID,
+    kind: 'git',
+    priority: 'extension',
+    title: () => 'Git',
+    guide: [
       {
-        name: 'sidebar.panellist',
-        id: PANEL_ID,
-        order: 40,
-        label: () => 'Git',
+        id: 'git',
+        order: 60,
+        title: () => 'Git',
+        description: () => '当前会话仓库的变更与最近提交',
+        icon: GitIcon,
       },
-      GitIcon,
-    ),
-  )
+    ],
+  })
 
-  ctx.slots.inject('main', () =>
+  ctx.slots.inject('sidebar.right.pane.tab', () =>
     ctx.slots.register(
       {
-        name: 'main',
+        name: 'sidebar.right.pane.tab',
         key: PANEL_ID,
       },
       GitPanel,
+    ),
+  )
+
+  ctx.slots.inject('sidebar.right.pane.tab.title', () =>
+    ctx.slots.register(
+      {
+        name: 'sidebar.right.pane.tab.title',
+        key: PANEL_ID,
+      },
+      GitTitle,
     ),
   )
 }
