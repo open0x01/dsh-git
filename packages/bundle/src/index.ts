@@ -23,7 +23,5 @@ export const entries = [
   'dsh-git-client',
 ] as const
 
-/** v0.1 已实现、默认启用的行。 */
-export const enabledEntries = entries.filter(
-  (entry) => !['dsh-git-github', 'dsh-git-tool-github', 'dsh-git-client'].includes(entry),
-)
+/** v0.1 已实现、默认启用的行（bundle 里全部 7 行都已启用）。 */
+export const enabledEntries = entries.filter(() => true)

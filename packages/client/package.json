@@ -1,7 +1,7 @@
 {
   "name": "dsh-git-client",
   "version": "0.1.0",
-  "description": "dsh-git 的 Web 侧边栏面板：状态 / 提交 / 历史 / diff（v0.1 尚未实现）",
+  "description": "dsh-git 的 Web 侧边栏面板：只读 RPC（snapshot / branches / worktrees / pr）+ 右侧边栏 Git tab",
   "type": "module",
   "license": "MIT",
   "main": "lib/index.js",
@@ -10,6 +10,9 @@
     ".": {
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
     },
     "./package.json": "./package.json"
   },
@@ -20,14 +23,21 @@
     "lib/**/*.d.ts.map"
   ],
   "scripts": {
-    "build": "tsdown -c ../../tsdown.config.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "tsdown -c ../../tsdown.config.ts && tsdown -c tsdown.client.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "client": {
+      "platform": "web"
+    }
   },
   "dependencies": {
     "dsh-git-core": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.5",
+    "@deepseek-ai/dsh-host-webserver": "^0.2.1-rc.2",
     "@deepseek-ai/schemastery": "^3.18.5"
   }
 }

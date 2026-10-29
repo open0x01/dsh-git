@@ -51,8 +51,10 @@
       config:
         toolPrefix: ''
 
-    # ── 以下一行尚未实现（M4），先以 disabled 占位 ──
-    # 实现完成后删掉 disabled 即可启用，不需要用户改任何配置。
+    # Web 面板：host 侧只读 RPC + 右侧边栏 Git tab
     - id: dsh-git-client
       name: dsh-git-client
-      disabled: true
+      config:
+        rpcPath: /api/dsh-git
+        slot: right-sidebar
+        maxCommits: 200

@@ -40,3 +40,12 @@
       name: ../packages/tool-github/lib/index.js
       config:
         toolPrefix: ''
+
+    # host 侧只读 RPC：--patch 下即可用（curl / 前端 fetch 都能打）
+    # 注意：浏览器里的面板（lib/client.js）由 dsh-client-modules 按**包名**解析，
+    # 只有在 profile 里真正 `dsh plugin add` 安装后才会被加载；--patch 只覆盖 host 行。
+    - id: dsh-git-client
+      name: ../packages/client/lib/index.js
+      config:
+        rpcPath: /api/dsh-git
+        maxCommits: 200

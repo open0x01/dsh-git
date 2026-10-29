@@ -2,8 +2,8 @@
 
 给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Git / GitHub 插件套件：把 GitHub 上分散的 DSH Git 相关插件能力，收敛成一套统一契约、零外部二进制依赖、默认安全的实现。
 
-> **当前状态：M0–M3 已落地（可构建、可测试、可加载），M4 面板未实现。**
-> 本地 Git 服务、11 个本地工具、8 个 GitHub 工具、审批策略与 bundle 都已就位；Web 面板在 `cordis.patch.yml` 里以 `disabled: true` 占位。进度见 [docs/00-执行总览.md](docs/00-执行总览.md)，验证方式见 [docs/05-开发与运行手册.md](docs/05-开发与运行手册.md)。
+> **当前状态：M0–M5 全部落地**（可构建、可测试、可加载；发布动作待执行）。
+> 本地 Git 11 个工具、GitHub 8 个工具、审批策略、bundle 与右侧边栏面板（只读）都已就位。进度见 [docs/00-执行总览.md](docs/00-执行总览.md)，验证方式见 [docs/05-开发与运行手册.md](docs/05-开发与运行手册.md)，发版步骤见 [docs/09-发布清单.md](docs/09-发布清单.md)。
 
 ## 它解决什么问题
 
@@ -32,7 +32,11 @@
 |---|---|
 | `gh_auth_status`、`gh_repo_view`、`gh_pr_list`、`gh_pr_view`、`gh_pr_diff`、`gh_issue_list`、`gh_issue_view` | `gh_pr_create`（默认 draft） |
 
-**Web 面板** —— 未实现（M4）：右侧边栏 Git tab（状态 / 提交 / 历史 / diff）。
+**Web 面板（只读）**
+
+- 右侧边栏 **Git** tab：分支与 ahead/behind、已暂存/未暂存/未跟踪三组文件、最近提交、刷新。
+- host 侧 RPC：`POST /api/dsh-git/<op>`，op 白名单 `snapshot` / `branches` / `worktrees` / `pr`。
+- **不提供写操作**：审批需要 agent 与进行中的 turn，HTTP 路由没有这个上下文；写操作请让模型调用工具（会走审批）。详见 [docs/08 ADR-020](docs/08-决策记录.md)。
 
 ## 设计红线
 
@@ -74,7 +78,7 @@ dsh-git/
 pnpm install
 pnpm typecheck      # 8 个包的类型检查
 pnpm build          # tsdown → 每包 lib/index.js + lib/index.d.ts
-pnpm test           # 83 个测试（含真实临时仓库集成测试 + 假 fetch 的 GitHub 客户端测试）
+pnpm test           # 94 个测试（真实临时仓库集成 + 假 fetch 的 GitHub 客户端 + 客户端 bundle 沙箱）
 pnpm smoke          # 挂到真实 cordis Context，断言 ctx.git / ctx.github / 19 个工具
 pnpm verify         # 以上四步串起来
 ```
@@ -108,6 +112,7 @@ dsh --profile <name> --dump-config | Select-String dsh-git
 | 怎么测、发布前查什么 | [06 测试与验收](docs/06-测试与验收.md) |
 | 安全边界 | [07 安全与权限](docs/07-安全与权限.md) |
 | 为什么不用某个方案 | [08 决策记录](docs/08-决策记录.md) |
+| 怎么发版、怎么回滚 | [09 发布清单](docs/09-发布清单.md) |
 
 ## 环境基线
 
