@@ -1,0 +1,31 @@
+# 本地调试 overlay：把仓库里的插件直接插进任意 profile，不打包、不安装。
+#
+#   dsh --profile desktop --patch D:\work\open0x01\dsh-git\examples\cordis.dev.yml --dump-config
+#   dsh --profile desktop --patch D:\work\open0x01\dsh-git\examples\cordis.dev.yml
+#
+# 前置：先 `pnpm build`（overlay 指向 lib/，不是 src/）。
+# 路径相对本文件解析；若你的 DSH 版本不接受相对路径，把 name 换成绝对路径即可。
+
+- insert:
+    - id: dsh-git-core
+      name: ../packages/core/lib/index.js
+
+    - id: dsh-git-local
+      name: ../packages/local/lib/index.js
+      config:
+        timeoutMs: 20000
+        maxOutputBytes: 65536
+        enableNetwork: false
+
+    - id: dsh-git-policy
+      name: ../packages/policy/lib/index.js
+      config:
+        rules:
+          read: allow
+          write: ask
+          network-write: deny
+
+    - id: dsh-git-tool-git
+      name: ../packages/tool-git/lib/index.js
+      config:
+        toolPrefix: ''

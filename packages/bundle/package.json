@@ -1,0 +1,53 @@
+{
+  "name": "dsh-git",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 的 Git / GitHub 插件套件：统一契约、零外部二进制依赖、默认安全",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-bundle",
+    "git",
+    "github"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "lib/**/*.js.map",
+    "lib/**/*.d.ts.map",
+    "cordis.patch.yml"
+  ],
+  "scripts": {
+    "build": "tsdown -c ../../tsdown.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "dsh-git-client": "workspace:^",
+    "dsh-git-core": "workspace:^",
+    "dsh-git-github": "workspace:^",
+    "dsh-git-local": "workspace:^",
+    "dsh-git-policy": "workspace:^",
+    "dsh-git-tool-git": "workspace:^",
+    "dsh-git-tool-github": "workspace:^"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.5"
+  }
+}

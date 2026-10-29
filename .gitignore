@@ -1,0 +1,15 @@
+node_modules/
+lib/
+dist/
+*.tsbuildinfo
+*.log
+coverage/
+.vitest/
+.worktrees/
+.tmp/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.tgz

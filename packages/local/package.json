@@ -1,0 +1,32 @@
+{
+  "name": "dsh-git-local",
+  "version": "0.1.0",
+  "description": "dsh-git 的本地 Git Provider：execFile('git', argv)，永不拼接 shell 字符串",
+  "type": "module",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "lib/**/*.js.map",
+    "lib/**/*.d.ts.map"
+  ],
+  "scripts": {
+    "build": "tsdown -c ../../tsdown.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "dsh-git-core": "workspace:^"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.5"
+  }
+}
