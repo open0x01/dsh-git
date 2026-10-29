@@ -87,7 +87,7 @@ describe('客户端 bundle（lib/client.js）', () => {
     expect(exports.PANEL_ID).toBe('dsh-git')
   })
 
-  it('apply 注册 tab 类型 + 内容 + 标题（右侧栏，会话级）', () => {
+  it('apply 注册：输入区分支 chip ×2 + 右侧栏 tab 类型/内容/标题', () => {
     const { exports } = loadBundle()
     const tabTypes: Array<Record<string, unknown>> = []
     const slots: Array<{ options: Record<string, unknown>; component: unknown }> = []
@@ -100,6 +100,7 @@ describe('客户端 bundle（lib/client.js）', () => {
           return () => {}
         },
       },
+      sidebarRight: { commandTarget: () => undefined, openTabFromTarget: () => {} },
       slots: {
         inject(name: string, callback: () => () => void) {
           injected.push(name)
@@ -114,7 +115,15 @@ describe('客户端 bundle（lib/client.js）', () => {
 
     ;(exports.apply as (context: unknown) => void)(ctx)
 
-    // 1. tab 类型：kind / 标题 / 引导入口
+    // 1. chip：新对话在那一排最前（靠 CSS order 提到首位），对话中在顶部动作区
+    expect(injected.slice(0, 2)).toEqual(['conversation.hero.options', 'conversation.session.header.actions'])
+    expect(slots[0]?.options).toMatchObject({ name: 'conversation.hero.options', id: 'dsh-git-branch' })
+    expect(slots[1]?.options).toMatchObject({ name: 'conversation.session.header.actions', id: 'dsh-git-branch' })
+    expect(typeof slots[0]?.options.inject).toBe('function')
+    expect(typeof slots[0]?.component).toBe('function')
+    expect(typeof slots[1]?.component).toBe('function')
+
+    // 2. 右侧栏 tab 类型：kind / 标题 / 引导入口
     expect(tabTypes).toHaveLength(1)
     const definition = tabTypes[0]
     expect(definition).toMatchObject({ id: 'dsh-git', kind: 'git', priority: 'extension' })
@@ -124,13 +133,12 @@ describe('客户端 bundle（lib/client.js）', () => {
     expect((guide[0]?.title as () => string)()).toBe('Git')
     expect(typeof guide[0]?.icon).toBe('function')
 
-    // 2. 内容与标题两个 keyed 槽位
-    expect(injected).toEqual(['sidebar.right.pane.tab', 'sidebar.right.pane.tab.title'])
-    expect(slots).toHaveLength(2)
-    expect(slots[0]?.options).toMatchObject({ name: 'sidebar.right.pane.tab', key: 'dsh-git' })
-    expect(slots[1]?.options).toMatchObject({ name: 'sidebar.right.pane.tab.title', key: 'dsh-git' })
-    expect(typeof slots[0]?.component).toBe('function')
-    expect(typeof slots[1]?.component).toBe('function')
+    // 3. 右侧栏的内容与标题两个 keyed 槽位
+    expect(injected.slice(2)).toEqual(['sidebar.right.pane.tab', 'sidebar.right.pane.tab.title'])
+    expect(slots[2]?.options).toMatchObject({ name: 'sidebar.right.pane.tab', key: 'dsh-git' })
+    expect(slots[3]?.options).toMatchObject({ name: 'sidebar.right.pane.tab.title', key: 'dsh-git' })
+    expect(typeof slots[2]?.component).toBe('function')
+    expect(typeof slots[3]?.component).toBe('function')
   })
 
   it('不再注册左侧全局页（sidebar.panellist / main）', () => {
